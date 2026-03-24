@@ -1,0 +1,133 @@
+name: _cln_djini_order_campaigns
+table_description: |
+  Clean-up actions done on top of the `dl_dmart.djini_cart_order_campaigns` and
+  `dl_dmart.djini_app_data_order_campaigns` data. This table has information about the campaigns used in the order
+  placed.
+
+  The reason why the `order_campaigns` table exists in both Djini Cart and Djini App Data is because their used to be
+  only one system that was split. After splitting, only the table in Djini Cart is kept up to date and with new data,
+  but the old App table still has historically relevant data. For schema relationship information visit the
+  [Djini team's confluence page][1].
+
+  ### Key
+
+  This table has no PK. Row-uniqueness can be determined by `country_code` + `djini_order_id` + `campaign_id` +
+  `product_id` + `parent_product_id`, but the `parent_product_id` will be `NULL` for all rows that don't represent a
+  combo-product.
+
+  For a given combination of `country_code` + `djini_order_id` + `campaign_id` + `product_id` their might be more than
+  one row for the orders that include combo-products.
+
+  ### Partitioning column
+
+  `created_date`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for the data-products as breaking changes may be introduced with no prior warning.
+
+  ### Data freshness
+
+  This is an incrementally loaded table. With each run of the `curated-data-v1` DAG the last 7 days of data in the
+  table get refreshed.
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`](https://deliveryhero.slack.com/archives/C01V1HS5S49)
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+columns_description:
+  - created_date: |
+      Order campaign created date (in UTC) based on `created_at_utc` column. This is the partitioning column of the
+      table.
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - global_entity_id: |
+      ID of the entity. For example, 'PY_UY' stands for PedidosYa Uruguay.
+  - djini_order_id: |
+      UUID of the order in the Djini system. It will match other `order_id` columns in the Djini DB, but not
+      necessarily with the platform order ID coming from other systems.
+  - product_id: |
+      UUID of the product. Should match with the product IDs coming from Catalog.
+  - parent_product_id: |
+      UUID of the parent product of a product. A product is said to have a parent product, if it is a combo. This
+      column will be `NULL` for all products that are not combo.
+
+      #### Example:
+
+      | order_id | parent_product_id | product_id |
+      |:--------:|:-----------------:|:----------:|
+      | 123      | A                 | A1         |
+      | 123      | A                 | A2         |
+      | 123      | null              | A1         |
+
+      This means that for `order_id = 123`, the user ordered two items of `product_id = 'A1'`. One of those items was
+      as part of combo with `parent_product_id = 'A'` and a second item by itself.
+
+      > Warning: this column will always be `NULL` for rows with `src = 'djini_app'` as it did not exist at the time of
+      > the migration.
+  - is_combo_product: |
+      A boolean of value `TRUE` if the product is a combo, otherwise `FALSE`.
+
+      > Warning: this column will always be `FALSE` for rows with `src = 'djini_app'` as it did not exist at the time
+      > of the migration.
+  - campaign_id: |
+      UUID of the campaign.
+  - discount_lc: |
+      Discount amount in local currency per campaign.
+  - created_at_utc: |
+      The date-time when the order was created (in UTC).
+  - updated_at_utc: |
+      The date-time when the order was updated (in UTC).
+  - applied_times: |
+      The number of times a campaign was used per product.
+  - supplier_funded_amount:
+  - ds_synced:
+  - external_funder:
+  - trigger_qty: |
+      The minimum quantity of the product required to trigger the promotion.
+  - benefit_qty: |
+      The quantity of the products on which the promotion was applied.
+  - src: |
+      Indicates the source of the data after combining Cart with App. Can take only one of two possible values:
+
+      - `djini_cart`: for rows coming from `dl_dmart.djini_cart_order_campaigns`
+      - `djini_app`: for rows coming from `dl_dmart.djini_app_data_order_campaigns`
+is_stream: true
+stream_look_back_days: 7
+backfill_chunks:
+  is_enabled: true
+time_partitioning: created_date
+require_partition_filter: true
+cluster_fields:
+  - country_code
+tests:
+  no_nulls: &no_nulls
+    test: no_nulls
+    frequency: daily
+  column_tests:
+    - column: created_date
+      tests:
+        - <<: *no_nulls
+    - column: country_code
+      tests:
+        - <<: *no_nulls
+    - column: djini_order_id
+      tests:
+        - <<: *no_nulls
+    - column: campaign_id
+      tests:
+        - <<: *no_nulls
+    - column: product_id
+      tests:
+        - <<: *no_nulls
+  table_tests:
+    - test: statement_true
+      frequency: daily
+      description: Because this table has no PKs, a strict `no_duplicates` test won't work. This test is its equivalent.
+      params:
+        statement: COUNT(DISTINCT country_code || djini_order_id || campaign_id || product_id || COALESCE(parent_product_id, 'null')) = COUNT(*) # yamllint disable-line rule:line-length
