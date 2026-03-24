@@ -1,0 +1,172 @@
+name: _cln_djini_campaigns
+table_description: |
+  Clean-up actions done on top of the `dl_dmart.djini_app_data_campaigns` data. This table has information on the
+  campaigns in the Djini system.
+
+  #### Updating campaigns
+
+  When a new campaign is created in the Djini App (Promo Tool) system, a new row gets created with the new version of
+  the campaign. This is done because the application team needs to maintain a historical of all the versions of the
+  campaign. When this happens the new row (i.e. the new version of the campaign) gets a new `global_id` (which is what
+  we here call `campaign_id`), but it can still be linked to its previous versions as they all maintain the same
+  `root_id`.
+
+  There's one exception to this mechanism though. If the campaign is created and then modified before the campaign is
+  ever live (i.e. before it's `start_at` value), then the campaign is modified in place in the Djini DB. If this action
+  happens and we have already imported the original line, because of how the Djini App imports are set up, we will
+  end-up with two rows representing the same campaign (same `country_code + campaign_id`). To avoid this, campaigns are
+  here de-duplicated based on the their `creation_date` value.
+
+  #### Related documentation
+
+  For schema relationship information visit the [Djini team's confluence page][1].
+
+  You can find the product guides for the Promotion Tool [here][2].
+
+  ### Key
+
+  PK: `country_code` + `campaign_id`
+
+  ### Partitioning column
+
+  `created_date`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for the data-products as breaking changes may be introduced with no prior warning.
+
+  ### Data freshness
+
+  The entire table is re-created with each run of DMART's `curated-data-v1` DAG (every 4 hours).
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`](https://deliveryhero.slack.com/archives/C01V1HS5S49)
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+  [2]: https://q-commerce-knowledge-base.knowledgeowl.com/home/promotion-tool
+columns_description:
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - global_entity_id: |
+      ID of the entity. For example, 'PY_UY' stands for PedidosYa Uruguay.
+  - campaign_id: |
+      UUID of the campaign.
+  - campaign_name: |
+      Campaign name.
+  - campaign_type: |
+      Campaign type, e.g. `Strikethrough`, `SameItemBundle`, `MixAndMatch`, `BasketValue`, etc.
+  - campaign_subtype: |
+      A sub-categorization of campaigns based on the `campaign_type`, `applies_to`, and `discount_type`.
+  - target_audience: |
+      User segment for which the campaign is applicable. This can have values like `ALL`, `SUBSCRIBED_USER`,
+      `SEGMENT_USER`, etc.
+  - target_audience_id: |
+      ID of the target audience group/segment. Only applicable for `target_audience = 'SEGMENT_USER'`. For all the
+      other types of target audiences this value will be `NULL`.
+  - applies_to: |
+      The level at which the campaign will be applied. E.g.: product, basket, etc.
+  - discount_type: |
+      The type of discount.
+  - discount_value: |
+      The discount value.
+  - global_usage_limit: |
+      The number of times the campaign can be used across users and carts.
+  - user_usage_limit: |
+      The maximum number times the campaign can be used per user.
+  - budget: |
+      The total budget amount for the campaign.
+  - total_trigger_threshold: |
+      The minimum basket total value to trigger the campaign.
+  - externally_funded_percentage: |
+      The percentage of amount borne by Supplier/CPG/Local Shop.
+  - created_at_utc: |
+      The date-time when the campaign data was created (in UTC).
+  - updated_at_utc: |
+      The date-time when the campaign data was last updated (in UTC).
+  - start_at_utc: |
+      The date-time when the campaign starts (in UTC).
+  - end_at_utc: |
+      The date-time when the campaign ends (in UTC).
+  - is_active: |
+      A boolean indicating if the campaign is active (`TRUE`) or deactivated (`FALSE`) by the campaign manager.
+  - descriptions: |
+      The description of the campaign. This presents information on the description in every locale in which said
+      description was provided at the moment of creating/updating the campaign. Data is presented as JSON where the
+      key is the locale (e.g. `en_GB`, `en_AE`, and so on), and the value is the description provided in that locale.
+  - display_names: |
+      The name used to display the campaign on the platform. This presents information on the display name in every
+      locale in which said information was provided at the moment of creating/updating the campaign. Data is presented
+      as JSON where the key is the locale (e.g. `en_GB`, `en_AE`, and so on), and the value is the display name
+      provided in that locale.
+  - benefit_qty_limit: |
+      Maximum number for a benefit that can be applied to a campaign.
+  - trigger_qty_threshold: |
+      The minimum quantity of products to trigger a campaign.
+  - cart_item_usage_limit: |
+      The number of times a campaign can be applied to a cart.
+  - reason: |
+      Reason for creating the campaign. For example, `Competitiveness`, `Expiring Soon`, `Delisting`, and so on.
+  - root_id: |
+      The identifier for the base version of the campaign.
+  - deactivated_at_utc: |
+      The date-time when the campaign was deactivated at (in UTC).
+  - root_creation_at_utc: |
+      The date-time when the base version campaign was created (in UTC).
+  - fixed_bundle_price: |
+      Fixed discounted price for the combination of products.
+  - experiment_id: |
+      ID of the experiment. Will be `NULL` for campaigns that are not part of any experiments.
+  - variation_name: |
+      Name of the variation set in the experiment. Will be `NULL` for campaigns that are not part of any experiments.
+  - creation_source: |
+      The source (tool) though which the campaign was created. As of the last update of this documentation, possible
+      values are:
+
+      - `OPS_PORTAL`
+      - `SPREADSHEET_INGESTION`
+      - `VENDOR_PORTAL`
+      - `SFTP_INTEGRATION`
+      - `NULL`: no source information available.
+  - external_funder: |
+      The source of the external funding for the campaign. As of the last update of this documentation, possible values
+      are:
+
+      - `LOCAL_SHOP`
+      - `BRAND`
+      - `NULL`: 'no external funding' or, 'information not available'.
+  - state: |
+      The last known state of the campaign. As of the last update of this documentation, possible values are:
+
+      - `READY`
+      - `PENDING_CREATION`
+      - `PENDING_APPROVAL`
+      - `CREATION_FAILED`
+      - `DEACTIVATION_FAILED`
+      - `CREATION_IN_PROGRESS`
+      - `PENDING_DEACTIVATE`
+      - `NULL`
+  - is_valid: |
+      A boolean indicating whether the campaign is currently valid (`TRUE`), or not (`FALSE`).
+tests:
+  no_nulls: &no_nulls
+    test: no_nulls
+    frequency: daily
+  column_tests:
+    - column: country_code
+      tests:
+        - <<: *no_nulls
+    - column: campaign_id
+      tests:
+        - <<: *no_nulls
+  table_tests:
+    - test: no_duplicates
+      frequency: daily
+      params:
+        columns:
+          - country_code
+          - campaign_id

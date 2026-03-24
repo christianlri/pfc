@@ -1,0 +1,78 @@
+name: _cln_djini_campaign_vendors
+table_description: |
+  This task takes care of all clean-up actions done on top of the Djini (Promo tool) campaign vendors. This is the
+  collection of vendors that the user selected when creating a campaign.
+
+  These campaign-vendor pairs do not mean that the campaign will be available in a given vendor, as the vendor might
+  not carry any of the SKUs that participate in the campaign. The campaign will automatically become available if the
+  vendor decides to start carrying the participating SKUs.
+
+  For schema relationship information visit the [Promo tool team's confluence page][1].
+
+  You can find the product guides for the Promo Tool [here][2].
+
+  ### Key
+
+  PK: `country_code` + `campaign_id` + `catalog_global_vendor_id`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for their data-products as breaking changes may be introduced with no prior warning.
+
+  ### Data freshness
+
+  This table is entirely re-created with each run of DMART's `curated-data` DAG (every 4 hours).
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`][3]
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+  [2]: https://q-commerce-knowledge-base.knowledgeowl.com/home/promotion-tool
+  [3]: https://deliveryhero.slack.com/archives/C01V1HS5S49
+columns_description:
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - global_entity_id: |
+      ID of the entity. For example, 'PY_UY' stands for PedidosYa Uruguay.
+  - campaign_id: |
+      UUID of the campaign.
+  - catalog_global_vendor_id: |
+      UUID of vendor. These IDs are fetched from the Catalog system. They are only global within the Catalog system.
+      They do not match the `platform_vendor_id` found in other tables.
+  - created_at_utc: |
+      Date and time (in UTC) at which the campaign-vendor relationship was created.
+  - updated_at_utc: |
+      Date and time (in UTC) at which the campaign-vendor relationship was last updated.
+tests:
+  no_nulls: &no_nulls
+    test: no_nulls
+    frequency: daily
+  column_tests:
+    - column: created_date_utc
+      tests:
+        - <<: *no_nulls
+    - column: country_code
+      tests:
+        - <<: *no_nulls
+    - column: global_entity_id
+      tests:
+        - <<: *no_nulls
+    - column: campaign_id
+      tests:
+        - <<: *no_nulls
+    - column: catalog_global_vendor_id
+      tests:
+        - <<: *no_nulls
+  table_tests:
+    - test: no_duplicates
+      frequency: daily
+      params:
+        columns:
+          - country_code
+          - campaign_id
+          - catalog_global_vendor_id

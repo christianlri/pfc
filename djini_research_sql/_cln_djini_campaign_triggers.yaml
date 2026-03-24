@@ -1,0 +1,55 @@
+name: _cln_djini_campaign_triggers
+table_description: |
+  This task takes care of all clean-up actions done on top of the Djini (Promo tool) campaign triggers. This includes
+  only `djini_app_data_campaign_triggers` as this data is now static.
+
+  A campaign trigger is the products or combination of products that the user needs to add to his/her cart in order to
+  cause the campaign to be applied to the cart.
+
+  For schema relationship information visit the [Promo tool team's confluence page][1].
+
+  You can find the product guides for the Promo Tool [here][2].
+
+  ### Key
+
+  PK: `country_code` + `campaign_id` + `sku`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for the data-products as breaking changes may be introduced with no prior warning.
+
+  Static. The DL layer table is no longer being used by the application team. This table takes care of cleaning the old
+  data which will not receive updates any longer.
+
+  ### Data freshness
+
+  This table is entirely re-created with each run of DMART's `curated-data-static` DAG. This DAG runs only on-demand.
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`][3]
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+  [2]: https://q-commerce-knowledge-base.knowledgeowl.com/home/promotion-tool
+  [3]: https://deliveryhero.slack.com/archives/C01V1HS5S49
+columns_description:
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - global_entity_id: |
+      ID of the entity. For example, 'PY_UY' stands for PedidosYa Uruguay.
+  - campaign_id: |
+      UUID of the campaign.
+  - sku: |
+      SKU of the product.
+  - created_at_utc: |
+      The date-time when the campaign trigger was created (in UTC).
+  - updated_at_utc:
+      The date-time when the campaign trigger was last updated (in UTC).
+  - is_deleted: |
+      A boolean that takes the value `TRUE` if the product has been soft deleted in the Djini App DB, or `FALSE` when
+      otherwise.
+execution_timeout_minutes: 30

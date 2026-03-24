@@ -1,0 +1,120 @@
+name: _cln_djini_campaign_benefits_v2
+table_description: |
+  This task takes care of all clean-up actions done on top of the new Djini (Promo tool) campaign benefits. It also
+  combines and de-duplicates old data that is now static. This table has information about the benefits of each
+  campaign.
+
+  While creating a campaign, benefits are set in two steps. Firstly, a global benefit is set. This discount type and
+  value will apply by default to all benefit SKUs. Then, benefits that apply for specific SKUs can be set. The global
+  benefits are only recorded in the `discount` column.
+
+  A campaign benefit is the product or combination of products that the user receives when a given campaign is applied
+  to the user's cart.
+
+  For schema relationship information visit the [Promo tool team's confluence page][1].
+
+  You can find the product guides for the Promo Tool [here][2].
+
+  ### Key
+
+  PK: `country_code` + `campaign_id` + `sku`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for their data-products as breaking changes may be introduced with no prior warning.
+
+  ### Data freshness
+
+  This table is entirely re-created with each run of DMART's `curated-data` DAG (every 4 hours).
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`][3]
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+  [2]: https://q-commerce-knowledge-base.knowledgeowl.com/home/promotion-tool
+  [3]: https://deliveryhero.slack.com/archives/C01V1HS5S49
+columns_description:
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - global_entity_id: |
+      ID of the entity. For example, 'PY_UY' stands for PedidosYa Uruguay.
+  - campaign_id: |
+      UUID of the campaign.
+  - sku: |
+      SKU of the product.
+  - discount_type: |
+      Type of discount. Possible values are:
+
+      - `PERCENTAGE`: this means that the `discount_value` is a percentage of the price of the product at the time of
+        order. For example, if `discount_type = 'PERCENTAGE'` and `discount_value = '10'` the user will receive a 10%
+        discount on the price of the product.
+      - `ABSOLUTE`: this means that the `discount_value` is a currency-units amount (e.g. Euros) of the price of the
+        product at the time of order. For example, if `discount_type = 'ABSOLUTE'` and `discount_value = '10'` the user
+        will receive a 10 currency-units amount discount on the price of the product.
+      - `FINAL_PRICE`: this means that the final price of the product will be `discount_value` when the campaign is
+        applied to an order.
+
+      `NULL` values in this column indicate that, for this campaign-SKU, the benefit has been set globally only, with
+      no overwrites at the SKU level.
+  - discount_value: |
+      Product discount amount, percentage, or final price.
+  - max_qty: |
+      The maximum quantity of product on which the discount can be applied to.
+  - remaining_qty: |
+      The remaining quantity of product on which the discount can be applied to.
+  - supplier_funding_type: |
+      Type of supplier funding.
+  - supplier_funding_value: |
+      Value of supplier funding.
+  - created_at_utc: |
+      The date-time when the campaign benefit was created (in UTC).
+
+      There are ~4000 rows for which this value is originally `NULL`. For those cases, we are defaulting to
+      `updated_at_utc`.
+  - updated_at_utc: |
+      The date-time when the campaign benefit was last updated (in UTC).
+  - is_deleted: |
+      Boolean that takes the value `TRUE` if the product has been removed from the campaign.
+  - src: |
+      The source of the campaign benefit. Possible values are:
+
+      - `Old benefits`: for rows that originate from the old benefits table (`djini_app_data_campaign_benefits`).
+      - `New benefits`: for rows that originate from the new benefits table (`djini_app_data_benefit_skus`).
+  - src_priority: |
+      The priority allocated to rows originated in the different sources of campaign benefits. Possible values are:
+
+      - `1`: for rows with `src = 'New benefits'`.
+      - `2`: for rows with `src = 'Old benefits'`.
+tests:
+  no_nulls: &no_nulls
+    test: no_nulls
+    frequency: daily
+  column_tests:
+    - column: created_date_utc
+      tests:
+        - <<: *no_nulls
+    - column: country_code
+      tests:
+        - <<: *no_nulls
+    - column: global_entity_id
+      tests:
+        - <<: *no_nulls
+    - column: campaign_id
+      tests:
+        - <<: *no_nulls
+    - column: sku
+      tests:
+        - <<: *no_nulls
+  table_tests:
+    - test: no_duplicates
+      frequency: daily
+      params:
+        columns:
+          - country_code
+          - campaign_id
+          - sku

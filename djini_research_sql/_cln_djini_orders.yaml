@@ -1,0 +1,125 @@
+name: _cln_djini_orders
+table_description: |
+  Clean-up actions done on top of the `dl_dmart.djini_cart_orders` and `dl_dmart.djini_app_data_orders` data. This
+  table has information about the order placed by the user. All orders that use the Djini Cart service can be found in
+  this table (regardless of whether the order contains a campaign or not). As of writing, the Djini Cart service is
+  active only for Pandora (Foodpanda + Foodora), PedidosYa, Talabat, and HungerStation, and only for vendors present
+  in Catalog.
+
+  The reason why the `orders` table exists in both Djini Cart and Djini App Data is because their used to be only one
+  system that was split. After splitting, only the table in Djini Cart is kept up to date and with new data, but some
+  older data can only be found in the Djini App data tables. For schema relationship information visit the
+  [Djini team's confluence page][1].
+
+  ### Key
+
+  PK: `country_code` + `djini_order_id`
+
+  ### Partitioning column
+
+  `created_date`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for the data-products as breaking changes may be introduced with no prior warning.
+
+  ### Data freshness
+
+  This is an incrementally loaded table. With each run of the `curated-data-v1` DAG the last 7 days of data in the
+  table get refreshed.
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`](https://deliveryhero.slack.com/archives/C01V1HS5S49)
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+columns_description:
+  - created_date: |
+      Order created date (in UTC) based on `created_at_utc` column. This is the partitioning column of the table.
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - region: |
+      Region for the Djini instance deployment. Can be one of `ap`, `eu`, `us`.
+  - global_entity_id: |
+      ID of the entity. For example, 'PY_UY' stands for PedidosYa Uruguay.
+  - djini_order_id: |
+      UUID of the order in the Djini system.
+  - order_id: |
+      ID of the order on the platform.
+  - cart_id: |
+      UUID of the cart.
+  - vendor_id: |
+      UUID of the vendor in the Djini system.
+  - target_audience: |
+      User segment for which the campaign is applicable. Currently, all orders are marked as `ALL`.
+  - absolute_discount_lc: |
+      Total discount amount in local currency.
+  - delivery_absolute_discount_lc: |
+      Delivery discount amount in local currency.
+  - total: |
+      Total amount after discount.
+  - subtotal: |
+      Basket amount without discounts.
+  - delivery_fee: |
+      Delivery fee for the vendor.
+  - delivery_total: |
+      Total delivery amount.
+  - minimum_order_value: |
+      Minimum order value.
+  - created_at_utc: |
+      The date-time when the order was created (in UTC).
+  - updated_at_utc: |
+      The date-time when the order was updated (in UTC).
+  - status: |
+      The status of the order in the Djini system. Currently all orders are marked as `ORDER_NEW`.
+  - client_id: |
+      ID of the client.
+  - session_id: |
+      ID of the session.
+  - src: |
+      Indicates the source of the data after combining Cart with App. Can take only one of two possible values:
+
+      - `djini_cart`: for rows coming from `dl_dmart.djini_cart_orders`
+      - `djini_app`: for rows coming from `dl_dmart.djini_app_data_orders`
+is_stream: true
+stream_look_back_days: 7
+backfill_chunks:
+  is_enabled: true
+time_partitioning: created_date
+require_partition_filter: true
+cluster_fields:
+  - country_code
+tests:
+  no_nulls: &no_nulls
+    test: no_nulls
+    frequency: daily
+  column_tests:
+    - column: created_date
+      tests:
+        - <<: *no_nulls
+    - column: country_code
+      tests:
+        - <<: *no_nulls
+    - column: global_entity_id
+      tests:
+        - <<: *no_nulls
+    - column: djini_order_id
+      tests:
+        - <<: *no_nulls
+    - column: order_id
+      tests:
+        - <<: *no_nulls
+    - column: vendor_id
+      tests:
+        - <<: *no_nulls
+  table_tests:
+    - test: no_duplicates
+      frequency: daily
+      params:
+        columns:
+          - country_code
+          - djini_order_id

@@ -1,0 +1,89 @@
+name: _cln_djini_vendors
+table_description: |
+  Clean-up actions done on top of the `dl_dmart.djini_app_data_vendors` data. This is a dimensional table which
+  describes the vendors in the Djini system.
+
+  For schema relationship information visit the [Djini team's confluence page][1].
+
+  You can find the product guides for the Promotion Tool [here][2].
+
+  ### Key
+
+  PK: `country_code` + `catalog_global_vendor_id`
+
+  ### Life cycle
+
+  Stable. This table is internal to the Data Engineering team. Other DMART teams should exercise caution when using it
+  for the data-products as breaking changes may be introduced with no prior warning.
+
+  ### Data freshness
+
+  This entire table gets re-created with every run of QC's `curated-data-v1` DAG (every 4 hours).
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`](https://deliveryhero.slack.com/archives/C01V1HS5S49)
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://confluence.deliveryhero.com/pages/viewpage.action?pageId=419427535
+  [2]: https://q-commerce-knowledge-base.knowledgeowl.com/home/promotion-tool
+columns_description:
+  - country_code: |
+      Two-letter code identifying the deployment country. For example, 'uy' stands for Uruguay.
+  - global_entity_id: |
+      Global entity identifier.
+  - catalog_global_vendor_id: |
+      ID of the vendor in the Djini system. These IDs are synced from the Catalog system. These IDs are created by the
+      Catalog system to be unique within each Catalog deployment instance.
+
+      See the [Djini technical docs][1] for more details of the relationship between Catalog and Djini products and
+      vendors.
+
+      [1]: https://confluence.deliveryhero.com/display/GBU/Vendor+and+product+identifiers
+  - catalog_remote_vendor_id: |
+      ID of the vendor. These IDs are synced from the Catalog system. These IDs are platform defined.
+
+      See the [Djini technical docs][1] for more details of the relationship between Catalog and Djini products and
+      vendors.
+
+      [1]: https://confluence.deliveryhero.com/display/GBU/Vendor+and+product+identifiers
+  - catalog_additional_remote_vendor_id: |
+      ID of the vendor. These IDs are synced from the Catalog system. These IDs are platform defined.
+
+      See the [Djini technical docs][1] for more details of the relationship between Catalog and Djini products and
+      vendors.
+
+      [1]: https://confluence.deliveryhero.com/display/GBU/Vendor+and+product+identifiers
+  - name: |
+      Name of the vendor in the Djini system.
+  - created_at_utc: |
+      The timestamp indicating when the vendor was created in the Djini system (in UTC).
+  - updated_at_utc: |
+      The timestamp indicating when the vendor was updated in the Djini system (in UTC).
+  - deleted_at_utc: |
+      The timestamp indicating when the vendor was deleted in the Djini system (in UTC).
+  - synchronized_at_utc: |
+      The timestamp indicating when the vendor was synced with the Catalog service (in UTC).
+tests:
+  no_nulls: &no_nulls
+    test: no_nulls
+    frequency: daily
+  column_tests:
+    - column: country_code
+      tests:
+        - <<: *no_nulls
+    - column: global_entity_id
+      tests:
+        - <<: *no_nulls
+    - column: catalog_global_vendor_id
+      tests:
+        - <<: *no_nulls
+  table_tests:
+    - test: no_duplicates
+      frequency: daily
+      params:
+        columns:
+          - country_code
+          - catalog_global_vendor_id
