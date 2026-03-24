@@ -1,0 +1,43 @@
+name: _cln_latam_supplier_funding
+table_description: |
+  This table centralizes the clean-up and processing of data derived from the supplier funded value table for LATAM. It
+  specifically focuses on capturing the actual supplier discounts for LATAM entities, which are not managed through the
+  promo-tool. The rationale behind this decision is detailed [in this document][1].
+
+  ### Key
+
+  PK: `global_entity_id` + `order_id` + `sku` + `campaign_id`
+
+  ### Life cycle
+
+  Stable. This table is internal to the DMART Analytics Engineering/Data Engineering team. Other DMART contributors
+  should exercise caution when using this table for their products as breaking changes might be introduced with no
+  prior warning.
+
+  ### Data freshness
+
+  This table is entirely recreated with every run of DMART's `curated-data` DAG (every 4 hours).
+
+  ### Owner
+
+  - Team: QCommerce analytics engineering
+  - Email: `qc-analytics-engineers@deliveryhero.com`
+  - Slack channel: [`#data-hub-qcommerce`](https://deliveryhero.slack.com/archives/C01V1HS5S49)
+  - Slack handle: `@qc-data-analytics-engineers`
+
+  [1]: https://docs.google.com/document/d/1mmZ8YcDiPjy4VzRKP5EzyNghEgu0ty3eWocsw63AG00/edit?tab=t.0
+columns_description:
+  - global_entity_id: |
+      Global entity ID. For example, `PY_UY` stands for PedidosYa Uruguay.
+  - country_code: |
+      ISO country code 2 letters.
+  - order_fulfilled_at_utc: |
+      Timestamp from when the order was fulfilled in UTC.
+  - order_id: |
+      A unique identifier used by customers, vendors, and customer care to identify an order.
+  - campaign_id: |
+      UUID of the campaign.
+  - sku: |
+      SKU (stock keeping unit) for the product.
+  - abs_discount_value_lt: |
+      The absolute discount amount that was applied on this item, in local currency.
