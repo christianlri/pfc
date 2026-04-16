@@ -51,6 +51,8 @@ SELECT DISTINCT
   , qc.is_valid
   , qc.externally_funded_percentage
   , qc.external_funder
+  , qc.trigger_qty_threshold
+  , qc.benefit_qty_limit
   , CURRENT_TIMESTAMP() AS ingested_at
 
 FROM `fulfillment-dwh-production.cl_dmart.qc_campaigns` AS qc
@@ -58,7 +60,8 @@ LEFT JOIN UNNEST(qc.benefits) AS b
 INNER JOIN dmart_skus AS ds
   ON qc.global_entity_id = ds.global_entity_id
   AND b.sku = ds.sku
-WHERE qc.global_entity_id = 'PY_PE'
+WHERE TRUE 
+  ---AND qc.global_entity_id = 'PY_PE'
   AND qc.country_code = 'pe'
   AND qc.state = 'READY'
   AND qc.is_valid = TRUE
