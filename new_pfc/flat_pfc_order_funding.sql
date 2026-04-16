@@ -18,8 +18,8 @@
 -- ============================================================
 
 -- ── Params de entidad ─────────────────────────────────────────
-DECLARE global_entity_id              STRING  DEFAULT 'PY_PE';
-DECLARE country_code                  STRING  DEFAULT 'pe';
+DECLARE param_global_entity_id              STRING  DEFAULT 'PY_PE';
+DECLARE param_country_code                  STRING  DEFAULT 'pe';
 DECLARE date_in                       DATE    DEFAULT DATE('2026-03-01');
 DECLARE date_fin                      DATE    DEFAULT CURRENT_DATE();
 
@@ -51,7 +51,8 @@ orders AS (
     , i.value_lc.djini_order_items_supplier_funded_lc         AS funding_v1_lc
   FROM `fulfillment-dwh-production.cl_dmart.qc_orders` AS qo
   LEFT JOIN UNNEST(qo.items) AS i
-  WHERE qo.global_entity_id                    = global_entity_id
+  WHERE qo.global_entity_id                    = param_global_entity_id
+    AND qo.country_code                        = param_country_code
     AND qo.is_dmart                            = TRUE
     AND qo.is_successful                       = TRUE
     AND qo.is_failed                           = FALSE
