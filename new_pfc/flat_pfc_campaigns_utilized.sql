@@ -17,7 +17,7 @@
 -- ============================================================
 
 DECLARE date_in  DATE DEFAULT DATE('2026-03-01');
-DECLARE date_fin DATE DEFAULT DATE('2026-03-31');
+DECLARE date_fin DATE DEFAULT CURRENT_DATE();
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.pfc_campaigns_utilized`
 CLUSTER BY global_entity_id
