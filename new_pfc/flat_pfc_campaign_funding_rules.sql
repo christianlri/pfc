@@ -4,19 +4,21 @@
 -- Autor: Christian La Rosa
 -- ============================================================
 -- PARAMS PY_PE
---   global_entity_id          : PY_PE
---   country_code               : pe
---   date_in                    : 2026-03-01
---   date_fin                   : 2026-03-31
---   funding_source             : marko
---   missing_contract_fallback  : skip
+--   param_global_entity_id    : PY_PE
+--   param_country_code        : pe
+--   date_in                   : 2026-03-01
+--   date_fin                  : CURRENT_DATE()
+--   funding_source            : marko
+--   missing_contract_fallback : skip
 --
--- TODO: date_in / date_fin hardcodeados para validación marzo 2026.
+-- TODO: date_in hardcodeado para validación marzo 2026.
 --       En pipeline productivo derivar del scheduler.
 -- ============================================================
 
-DECLARE date_in  DATE DEFAULT DATE('2026-03-01');
-DECLARE date_fin DATE DEFAULT CURRENT_DATE();
+DECLARE param_global_entity_id  STRING  DEFAULT 'PY_PE';
+DECLARE param_country_code      STRING  DEFAULT 'pe';
+DECLARE date_in                 DATE    DEFAULT DATE('2026-03-01');
+DECLARE date_fin                DATE    DEFAULT CURRENT_DATE();
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.pfc_campaign_funding_rules`
 CLUSTER BY global_entity_id, campaign_id
@@ -37,14 +39,16 @@ WITH campaigns_with_benefits AS (
     , b.discount_type    AS discount_type_sku
     , b.discount_value   AS discount_value_sku
     , b.is_deleted
+    , t1.trigger_qty_threshold
+    , t1.benefit_qty_limit
   FROM `fulfillment-dwh-production.cl_dmart.qc_campaigns` AS qc
   LEFT JOIN UNNEST(qc.benefits) AS b
   INNER JOIN `dh-darkstores-live.csm_automated_tables.pfc_campaigns_utilized` AS t1
     ON qc.global_entity_id = t1.global_entity_id
     AND qc.campaign_id     = t1.campaign_id
-  WHERE qc.country_code = 'pe'
-    AND qc.start_at_utc <= TIMESTAMP(date_fin)
-    AND qc.end_at_utc   >= TIMESTAMP(date_in)
+  WHERE qc.country_code   = param_country_code
+    AND qc.start_at_utc  <= TIMESTAMP(date_fin)
+    AND qc.end_at_utc    >= TIMESTAMP(date_in)
 
 )
 
@@ -72,6 +76,8 @@ SELECT
     END AS funding_unit_value
   , COALESCE(discount_type_sku,  discount_type_global)  AS discount_type_resolved
   , COALESCE(discount_value_sku, discount_value_global) AS discount_value_resolved
+  , trigger_qty_threshold
+  , benefit_qty_limit
   , CURRENT_TIMESTAMP() AS ingested_at
 
 FROM campaigns_with_benefits

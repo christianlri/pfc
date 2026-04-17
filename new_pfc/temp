@@ -10,7 +10,7 @@
 --   funding_value_convention : normalized
 --   missing_contract_fallback: skip
 --
--- TODO: date_in / date_fin hardcodeados para validación marzo 2026.
+-- TODO: date_in hardcodeado para validación marzo 2026.
 --       En pipeline productivo derivar del scheduler.
 -- ============================================================
 
@@ -34,8 +34,6 @@ WITH vendor_warehouse AS (
     AND vp.warehouse_id       != ''
 )
 
--- Expansión temporal: campaign × sku × date × warehouse
--- Una fila por cada día que la campaña estuvo activa en cada warehouse
 , daily_grid AS (
   SELECT
     t2.global_entity_id
@@ -55,19 +53,13 @@ WITH vendor_warehouse AS (
     , order_date
 
   FROM `dh-darkstores-live.csm_automated_tables.pfc_campaign_funding_rules` AS t2
-
-  -- Expandir vendors de la campaña
   INNER JOIN `fulfillment-dwh-production.cl_dmart.qc_campaigns` AS qc
     ON t2.global_entity_id = qc.global_entity_id
     AND t2.campaign_id     = qc.campaign_id
   LEFT JOIN UNNEST(qc.vendors) AS v
-
-  -- Resolver vendor → warehouse (vendors cerrados quedan fuera aquí)
   INNER JOIN vendor_warehouse AS vw
     ON qc.global_entity_id         = vw.global_entity_id
     AND v.catalog_global_vendor_id = vw.catalog_global_vendor_id
-
-  -- Expandir fechas: una fila por día activo de la campaña
   LEFT JOIN UNNEST(GENERATE_DATE_ARRAY(
     DATE(qc.start_at_utc)
     , DATE(qc.end_at_utc)
