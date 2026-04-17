@@ -96,6 +96,7 @@ orders AS (
     , t3.benefit_qty_limit
     , t3.discount_type_resolved
     , t3.discount_value_resolved
+    , t3.campaign_end_date
   FROM orders AS o
   LEFT JOIN `dh-darkstores-live.csm_automated_tables.pfc_daily_funding` AS t3
     ON  o.global_entity_id = t3.global_entity_id
@@ -127,6 +128,7 @@ orders AS (
     , benefit_qty_limit
     , discount_type_resolved
     , discount_value_resolved
+    , campaign_end_date
   FROM orders_with_funding
   QUALIFY ROW_NUMBER() OVER (
     PARTITION BY order_id, sku
@@ -156,6 +158,7 @@ SELECT
   , d.benefit_qty_limit
   , d.discount_type_resolved
   , d.discount_value_resolved
+  , d.campaign_end_date
 
   -- funding_total_lc — gobernado por params
   , CASE

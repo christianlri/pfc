@@ -53,6 +53,7 @@ WITH vendor_warehouse AS (
     , t2.benefit_qty_limit
     , vw.warehouse_id
     , order_date
+    , DATE(qc.end_at_utc) AS campaign_end_date
 
   FROM `dh-darkstores-live.csm_automated_tables.pfc_campaign_funding_rules` AS t2
 
@@ -91,6 +92,7 @@ SELECT
   , discount_value_resolved
   , trigger_qty_threshold
   , benefit_qty_limit
+  , campaign_end_date
   , CURRENT_TIMESTAMP() AS ingested_at
 
 FROM daily_grid

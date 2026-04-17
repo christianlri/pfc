@@ -20,7 +20,7 @@ DECLARE param_global_entity_id  STRING  DEFAULT 'PY_PE';
 DECLARE param_country_code      STRING  DEFAULT 'pe';
 DECLARE date_in                 DATE    DEFAULT DATE('2026-03-01');
 DECLARE date_fin                DATE    DEFAULT CURRENT_DATE();
-DECLARE param_billing_period    STRING  DEFAULT 'order_date';
+DECLARE param_billing_period    STRING  DEFAULT 'campaign_end_date';
 DECLARE param_show_brand        BOOL    DEFAULT FALSE;
 DECLARE param_show_warehouse    BOOL    DEFAULT TRUE;
 
@@ -35,9 +35,8 @@ WITH pre_agg AS (
     , CASE WHEN param_show_brand     = TRUE THEN NULL         ELSE NULL END AS brand_name_output
     , DATE_TRUNC(
         CASE param_billing_period
-          WHEN 'order_date' THEN order_date
-          -- campaign_end_date: TODO cuando haya país que lo requiera
-          -- necesita traer end_at_utc desde T3 via T4
+          WHEN 'order_date'        THEN order_date
+          WHEN 'campaign_end_date' THEN campaign_end_date
         END
       , MONTH
       ) AS billing_month
