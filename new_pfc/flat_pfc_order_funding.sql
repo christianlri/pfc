@@ -18,18 +18,18 @@
 -- ============================================================
 
 -- ── Params de entidad ─────────────────────────────────────────
-DECLARE param_global_entity_id              STRING  DEFAULT 'PY_PE';
-DECLARE param_country_code                  STRING  DEFAULT 'pe';
-DECLARE date_in                       DATE    DEFAULT DATE('2025-01-01');
-DECLARE date_fin                      DATE    DEFAULT CURRENT_DATE();
+DECLARE param_global_entity_id       STRING  DEFAULT 'PY_PE';
+DECLARE param_country_code           STRING  DEFAULT 'pe';
+DECLARE date_in                      DATE    DEFAULT DATE('2025-01-01');
+DECLARE date_fin                     DATE    DEFAULT CURRENT_DATE();
 
 -- ── Params de comportamiento ──────────────────────────────────
-DECLARE join_strategy                 STRING  DEFAULT 'date_warehouse_sku';
-DECLARE require_discount_to_charge    BOOL    DEFAULT TRUE;
-DECLARE missing_contract_fallback     STRING  DEFAULT 'skip';
-DECLARE funding_value_convention      STRING  DEFAULT 'normalized';
-
--- ─────────────────────────────────────────────────────────────
+DECLARE join_strategy                STRING  DEFAULT 'date_warehouse_sku';
+DECLARE require_discount_to_charge   BOOL    DEFAULT TRUE;
+DECLARE missing_contract_fallback    STRING  DEFAULT 'skip';
+DECLARE funding_value_convention     STRING  DEFAULT 'normalized';
+DECLARE funding_source               STRING  DEFAULT 'negotiated';
+-- funding_source opciones: 'negotiated' | 'promotool'
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.pfc_order_funding`
 CLUSTER BY global_entity_id, order_date, supplier_id
@@ -106,6 +106,10 @@ orders AS (
     AND o.order_date        = t3.order_date
     AND o.warehouse_id      = t3.warehouse_id
     AND o.sku               = t3.sku
+    AND (
+      join_strategy != 'campaign_id'
+      OR o.campaign_id = t3.campaign_id
+    )
 )
 
 -- Resolver overlaps: MAX(funding_unit_value) por order_id × sku — lógica Marko
@@ -194,29 +198,19 @@ SELECT
       ELSE 0.0
     END AS funding_total_lc
 
+  -- pfc_funding_amount_lc — switch gobernado por funding_source
+  , CASE funding_source
+      WHEN 'negotiated' THEN funding_total_lc
+      WHEN 'promotool'  THEN COALESCE(d.funding_v1_lc, 0.0)
+    END AS pfc_funding_amount_lc
+
   -- PFC v1 para audit
   , COALESCE(d.funding_v1_lc, 0.0)             AS funding_v1_lc
 
-  -- delta_lc: v2 - v1
-  , CASE
-      WHEN require_discount_to_charge = TRUE
-       AND d.has_discount = FALSE               THEN 0.0 - COALESCE(d.funding_v1_lc, 0.0)
-      WHEN d.contract_status = 'missing'
-       AND missing_contract_fallback = 'skip'   THEN 0.0 - COALESCE(d.funding_v1_lc, 0.0)
-      WHEN d.contract_status = 'missing'
-       AND missing_contract_fallback = 'full_discount'
-        THEN ROUND(d.unit_discount_lc * d.quantity_sold, 2) - COALESCE(d.funding_v1_lc, 0.0)
-      WHEN d.contract_status = 'explicit_zero'  THEN 0.0 - COALESCE(d.funding_v1_lc, 0.0)
-      WHEN d.funding_unit_value IS NULL         THEN 0.0 - COALESCE(d.funding_v1_lc, 0.0)
-      WHEN funding_value_convention = 'normalized'
-        THEN ROUND(d.funding_unit_value * d.quantity_sold, 2) - COALESCE(d.funding_v1_lc, 0.0)
-      WHEN funding_value_convention = 'per_benefit'
-        THEN ROUND(
-               d.funding_unit_value
-               * FLOOR(d.quantity_sold / NULLIF(d.trigger_qty_threshold, 0))
-               * d.benefit_qty_limit
-             , 2) - COALESCE(d.funding_v1_lc, 0.0)
-      ELSE 0.0 - COALESCE(d.funding_v1_lc, 0.0)
+  -- delta_lc: pfc_funding_amount_lc - funding_v1_lc
+  , CASE funding_source
+      WHEN 'negotiated' THEN funding_total_lc - COALESCE(d.funding_v1_lc, 0.0)
+      WHEN 'promotool'  THEN 0.0
     END AS delta_lc
 
   -- Flags audit

@@ -18,9 +18,9 @@
 
 DECLARE param_global_entity_id  STRING  DEFAULT 'PY_PE';
 DECLARE param_country_code      STRING  DEFAULT 'pe';
-DECLARE date_in                 DATE    DEFAULT DATE('2026-03-01');
-DECLARE date_fin                DATE    DEFAULT DATE('2026-03-31');
-DECLARE param_billing_period    STRING  DEFAULT 'campaign_end_date';
+DECLARE date_in                 DATE    DEFAULT DATE('2026-01-01');
+DECLARE date_fin                DATE    DEFAULT CURRENT_DATE();
+DECLARE param_billing_period    STRING  DEFAULT 'order_date';
 DECLARE param_show_brand        BOOL    DEFAULT FALSE;
 DECLARE param_show_warehouse    BOOL    DEFAULT TRUE;
 
@@ -59,7 +59,7 @@ SELECT
   , COUNT(DISTINCT order_id)              AS total_orders
   , COUNT(DISTINCT sku)                   AS total_skus
   , COUNT(DISTINCT campaign_id)           AS total_campaigns
-  , ROUND(SUM(funding_total_lc), 2)       AS total_funding_v2_lc
+  , ROUND(SUM(pfc_funding_amount_lc), 2)  AS total_funding_v2_lc
   , ROUND(SUM(funding_v1_lc), 2)          AS total_funding_v1_lc
   , ROUND(SUM(delta_lc), 2)               AS total_delta_lc
   , COUNTIF(fallback_applied = TRUE)      AS fallback_orders
