@@ -20,7 +20,7 @@
 -- ── Params de entidad ─────────────────────────────────────────
 DECLARE param_global_entity_id       STRING  DEFAULT 'PY_PE';
 DECLARE param_country_code           STRING  DEFAULT 'pe';
-DECLARE date_in                      DATE    DEFAULT DATE('2025-01-01');
+DECLARE param_date_in                DATE    DEFAULT DATE('2025-01-01');
 DECLARE date_fin                     DATE    DEFAULT CURRENT_DATE();
 
 -- ── Params de comportamiento ──────────────────────────────────
@@ -60,7 +60,7 @@ orders AS (
     AND qo.is_failed                           = FALSE
     AND qo.is_cancelled                        = FALSE
     AND i.quantity_sold                        > 0
-    AND DATE(qo.order_created_date_lt) BETWEEN date_in AND date_fin
+    AND DATE(qo.order_created_date_lt) BETWEEN param_date_in AND date_fin
 )
 
 , supplier_info AS (
