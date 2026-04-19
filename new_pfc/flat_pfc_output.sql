@@ -46,7 +46,7 @@ WITH pre_agg AS (
           WHEN 'order_date'        THEN order_date
           WHEN 'campaign_end_date' THEN campaign_end_date
         END BETWEEN date_in AND date_fin
-    AND funding_total_lc > 0  -- solo filas con funding real → credit note no incluye ceros
+    AND pfc_funding_amount_lc > 0  -- solo filas con funding real → credit note no incluye ceros
 )
 
 SELECT
