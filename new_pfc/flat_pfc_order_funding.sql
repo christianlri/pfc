@@ -69,12 +69,12 @@ orders AS (
     , sp.sku
     , sp.warehouse_id
     , sp.supplier_id
-    , ss.supplier_name
+    , ss.name AS supplier_name
   FROM (
     SELECT
       ps.global_entity_id
       , ps.sku
-      , ps.supplier_id
+      , s.supplier_id
       , w.warehouse_id
       , w.is_preferred_supplier
     FROM `fulfillment-dwh-production.cl_dmart.products_suppliers` AS ps
@@ -91,7 +91,7 @@ orders AS (
         , w.warehouse_id
       ORDER BY
         w.is_preferred_supplier DESC
-        , ps.updated_at DESC NULLS LAST
+        , s.supplier_updated_at DESC NULLS LAST
     ) = 1
   ) AS sp
   LEFT JOIN `fulfillment-dwh-production.curated_data_shared_salesforce_srm.account` AS ss
