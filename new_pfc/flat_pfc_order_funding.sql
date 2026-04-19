@@ -20,7 +20,7 @@
 -- ── Params de entidad ─────────────────────────────────────────
 DECLARE param_global_entity_id              STRING  DEFAULT 'PY_PE';
 DECLARE param_country_code                  STRING  DEFAULT 'pe';
-DECLARE date_in                       DATE    DEFAULT DATE('2026-03-01');
+DECLARE date_in                       DATE    DEFAULT DATE('2025-01-01');
 DECLARE date_fin                      DATE    DEFAULT CURRENT_DATE();
 
 -- ── Params de comportamiento ──────────────────────────────────
