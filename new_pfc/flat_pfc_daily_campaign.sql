@@ -26,6 +26,7 @@ WITH vendor_warehouse AS (
     qcp.global_entity_id
     , vp.catalog_global_vendor_id
     , vp.warehouse_id
+    , vp.warehouse_name
   FROM `fulfillment-dwh-production.cl_dmart.qc_catalog_products` AS qcp
   LEFT JOIN UNNEST(qcp.vendor_products) AS vp
   WHERE qcp.global_entity_id = param_global_entity_id
@@ -52,6 +53,7 @@ WITH vendor_warehouse AS (
     , t2.trigger_qty_threshold
     , t2.benefit_qty_limit
     , vw.warehouse_id
+    , vw.warehouse_name
     , order_date
     , DATE(qc.end_at_utc) AS campaign_end_date
 
@@ -84,6 +86,7 @@ SELECT
   , sku
   , order_date
   , warehouse_id
+  , warehouse_name
   , contract_status
   , supplier_funding_type
   , supplier_funding_value

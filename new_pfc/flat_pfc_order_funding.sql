@@ -100,6 +100,7 @@ orders AS (
     , t3.discount_type_resolved
     , t3.discount_value_resolved
     , t3.campaign_end_date
+    , t3.warehouse_name
   FROM orders AS o
   LEFT JOIN `dh-darkstores-live.csm_automated_tables.pfc_daily_funding` AS t3
     ON  o.global_entity_id = t3.global_entity_id
@@ -137,6 +138,7 @@ orders AS (
     , discount_type_resolved
     , discount_value_resolved
     , campaign_end_date
+    , warehouse_name
     , CASE
         WHEN require_discount_to_charge = TRUE
          AND has_discount = FALSE               THEN 0.0
@@ -190,6 +192,7 @@ SELECT
   , d.discount_type_resolved
   , d.discount_value_resolved
   , d.campaign_end_date
+  , d.warehouse_name
 
   -- funding_total_lc — calculado en orders_dedup
   , d.funding_total_lc

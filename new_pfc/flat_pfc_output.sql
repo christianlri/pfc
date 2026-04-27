@@ -31,8 +31,9 @@ AS
 WITH pre_agg AS (
   SELECT
     *
-    , CASE WHEN param_show_warehouse = TRUE THEN warehouse_id ELSE NULL END AS warehouse_id_output
-    , CASE WHEN param_show_brand     = TRUE THEN NULL         ELSE NULL END AS brand_name_output
+    , warehouse_id AS warehouse_id_output
+    , warehouse_name AS warehouse_name_output
+    , brand_name AS brand_name_output
     , DATE_TRUNC(
         CASE param_billing_period
           WHEN 'order_date'        THEN order_date
@@ -56,6 +57,7 @@ SELECT
   , supplier_name
   , brand_name_output                     AS brand_name
   , warehouse_id_output                   AS warehouse_id
+  , warehouse_name_output                 AS warehouse_name
   , COUNT(DISTINCT order_id)              AS total_orders
   , COUNT(DISTINCT sku)                   AS total_skus
   , COUNT(DISTINCT campaign_id)           AS total_campaigns
@@ -74,3 +76,4 @@ GROUP BY
   , supplier_name
   , brand_name_output
   , warehouse_id_output
+  , warehouse_name_output
