@@ -3,25 +3,23 @@
 -- Dataset destino: dh-darkstores-live.csm_automated_tables
 -- Autor: Christian La Rosa
 -- ============================================================
--- PARAMS PY_PE
---   param_global_entity_id   : PY_PE
---   param_country_code       : pe
---   funding_source           : marko
---   funding_value_convention : normalized
---   missing_contract_fallback: skip
---
--- TODO: date_in / date_fin hardcodeados para validación marzo 2026.
---       En pipeline productivo derivar del scheduler.
+-- Procesa TODOS los países activos en pfc_config en una sola ejecución
 -- ============================================================
-
-DECLARE param_global_entity_id  STRING  DEFAULT 'PY_PE';
-DECLARE param_country_code      STRING  DEFAULT 'pe';
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.pfc_daily_funding`
 CLUSTER BY global_entity_id, order_date, sku
 AS
 
-WITH vendor_warehouse AS (
+-- Lee configuración desde pfc_config para todos los países activos
+WITH config AS (
+  SELECT
+    global_entity_id
+    , country_code
+  FROM `dh-darkstores-live.csm_automated_tables.pfc_config`
+  WHERE is_active = TRUE
+)
+
+, vendor_warehouse AS (
   SELECT DISTINCT
     qcp.global_entity_id
     , vp.catalog_global_vendor_id
@@ -29,10 +27,11 @@ WITH vendor_warehouse AS (
     , vp.warehouse_name
   FROM `fulfillment-dwh-production.cl_dmart.qc_catalog_products` AS qcp
   LEFT JOIN UNNEST(qcp.vendor_products) AS vp
-  WHERE qcp.global_entity_id = param_global_entity_id
-    AND vp.is_dmart           = TRUE
-    AND vp.warehouse_id       IS NOT NULL
-    AND vp.warehouse_id       != ''
+  INNER JOIN config cfg
+    ON qcp.global_entity_id = cfg.global_entity_id
+  WHERE vp.is_dmart     = TRUE
+    AND vp.warehouse_id IS NOT NULL
+    AND vp.warehouse_id != ''
 )
 
 -- Expansión temporal: campaign × sku × date × warehouse
@@ -75,7 +74,9 @@ WITH vendor_warehouse AS (
     DATE(qc.start_at_utc)
     , DATE(qc.end_at_utc)
   )) AS order_date
-  WHERE qc.country_code = param_country_code
+  INNER JOIN config cfg
+    ON qc.global_entity_id = cfg.global_entity_id
+  WHERE qc.country_code = cfg.country_code
 )
 
 SELECT

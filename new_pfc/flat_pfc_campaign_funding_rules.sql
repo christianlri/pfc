@@ -3,28 +3,30 @@
 -- Dataset destino: dh-darkstores-live.csm_automated_tables
 -- Autor: Christian La Rosa
 -- ============================================================
--- PARAMS PY_PE
---   param_global_entity_id    : PY_PE
---   param_country_code        : pe
---   date_in                   : 2026-03-01
---   date_fin                  : CURRENT_DATE()
---   funding_source            : marko
---   missing_contract_fallback : skip
---
--- TODO: date_in hardcodeado para validación marzo 2026.
---       En pipeline productivo derivar del scheduler.
+-- Procesa TODOS los países activos en pfc_config en una sola ejecución
+-- Parámetros universales:
+--   param_date_in : 2025-01-01
+--   date_fin      : CURRENT_DATE()
 -- ============================================================
 
-DECLARE param_global_entity_id  STRING  DEFAULT 'PY_PE';
-DECLARE param_country_code      STRING  DEFAULT 'pe';
-DECLARE date_in                 DATE    DEFAULT DATE('2025-01-01');
+-- Parámetros universales
+DECLARE param_date_in           DATE    DEFAULT DATE('2025-01-01');
 DECLARE date_fin                DATE    DEFAULT CURRENT_DATE();
 
 CREATE OR REPLACE TABLE `dh-darkstores-live.csm_automated_tables.pfc_campaign_funding_rules`
 CLUSTER BY global_entity_id, campaign_id
 AS
 
-WITH campaigns_with_benefits AS (
+-- Lee configuración desde pfc_config para todos los países activos
+WITH config AS (
+  SELECT
+    global_entity_id
+    , country_code
+  FROM `dh-darkstores-live.csm_automated_tables.pfc_config`
+  WHERE is_active = TRUE
+)
+
+, campaigns_with_benefits AS (
 
   SELECT
     qc.global_entity_id
@@ -46,9 +48,11 @@ WITH campaigns_with_benefits AS (
   INNER JOIN `dh-darkstores-live.csm_automated_tables.pfc_campaigns_utilized` AS t1
     ON qc.global_entity_id = t1.global_entity_id
     AND qc.campaign_id     = t1.campaign_id
-  WHERE qc.country_code   = param_country_code
+  INNER JOIN config cfg
+    ON qc.global_entity_id = cfg.global_entity_id
+  WHERE qc.country_code   = cfg.country_code
     AND qc.start_at_utc  <= TIMESTAMP(date_fin)
-    AND qc.end_at_utc    >= TIMESTAMP(date_in)
+    AND qc.end_at_utc    >= TIMESTAMP(param_date_in)
 
 )
 
